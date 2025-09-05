@@ -1,3 +1,4 @@
+// app.js
 import 'dotenv/config';
 import express from 'express';
 import {
@@ -7,43 +8,44 @@ import {
 } from 'discord-interactions';
 import { getDoughPhrase } from './commands.js';
 
-// Create an express app
+// Create an Express app
 const app = express();
-// Get port, or default to 3000
 const PORT = process.env.PORT || 3000;
 
-app.post('/interactions', verifyKeyMiddleware(process.env.PUBLIC_KEY), async function (req, res) {
-  // Interaction type and data
-  const { type, data } = req.body;
+// Middleware to verify Discord requests
+app.post(
+  '/interactions',
+  verifyKeyMiddleware(process.env.CLIENT_PUBLIC_KEY),
+  async (req, res) => {
+    const { type, data } = req.body;
 
-  // Handle verification requests
-  if (type === InteractionType.PING) {
-    return res.send({ type: InteractionResponseType.PONG });
-  }
-
-  // Handle slash command requests
-  if (type === InteractionType.APPLICATION_COMMAND) {
-    const { name } = data;
-
-    // "dough" command
-    if (name === 'dough') {
-      const randomPhrase = getDoughPhrase();
-      return res.send({
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: {
-          content: randomPhrase,
-        },
-      });
+    // Discord PING verification
+    if (type === InteractionType.PING) {
+      return res.send({ type: InteractionResponseType.PONG });
     }
 
-    console.error(`unknown command: ${name}`);
-    return res.status(400).json({ error: 'unknown command' });
+    // Slash command handling
+    if (type === InteractionType.APPLICATION_COMMAND) {
+      const { name } = data;
+
+      if (name === 'dough') {
+        const randomPhrase = getDoughPhrase();
+        return res.send({
+          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+          data: { content: randomPhrase },
+        });
+      }
+
+      console.error(`Unknown command: ${name}`);
+      return res.status(400).json({ error: 'Unknown command' });
+    }
+
+    console.error('Unknown interaction type', type);
+    return res.status(400).json({ error: 'Unknown interaction type' });
   }
+);
 
-  console.error('unknown interaction type', type);
-  return res.status(400).json({ error: 'unknown interaction type' });
-});
-
+// Start server
 app.listen(PORT, () => {
-  console.log('Listening on port', PORT);
+  console.log(`DoughBOT listening on port ${PORT}`);
 });
